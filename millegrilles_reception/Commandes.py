@@ -58,27 +58,13 @@ class CommandReceptionHandler(CommandesAbstract):
             messages_thread.ajouter_consumer(res_volatil)
 
         res_evenements = RessourcesConsommation(self.callback_reply_q, channel_separe=True, est_asyncio=True)
-
-        if self.socket_io_handler:
-            res_evenements.ajouter_rk(
-                Constantes.SECURITE_PUBLIC,
-                f'evenement.{Constantes.DOMAINE_MAITRE_DES_CLES}.{Constantes.EVENEMENT_MAITREDESCLES_CERTIFICAT}', )
-
-            res_evenements.ajouter_rk(
-                Constantes.SECURITE_PUBLIC,
-                f'evenement.{Constantes.DOMAINE_CORE_MAITREDESCOMPTES}.{Constantes.EVENEMENT_EVICT_USAGER}', )
-
-            # Listener pour les subscriptions. Les routing keys sont gerees par subsbscription_handler dynamiquement.
-            res_subscriptions = RessourcesConsommation(
-                self.socket_io_handler.subscription_handler.callback_reply_q,
-                channel_separe=True, est_asyncio=True)
-            self.socket_io_handler.subscription_handler.messages_thread = messages_thread
-            self.socket_io_handler.subscription_handler.ressources_consommation = res_subscriptions
-
-            messages_thread.ajouter_consumer(res_subscriptions)
-
-        if res_evenements.rk:
-            messages_thread.ajouter_consumer(res_evenements)
+        res_evenements.ajouter_rk(
+            Constantes.SECURITE_PUBLIC,
+            f'evenement.{Constantes.DOMAINE_MAITRE_DES_CLES}.{Constantes.EVENEMENT_MAITREDESCLES_CERTIFICAT}', )
+        res_evenements.ajouter_rk(
+            Constantes.SECURITE_PUBLIC,
+            f'evenement.{Constantes.DOMAINE_MESSAGES}.{Constantes.EVENEMENT_MESSAGES_CERTIFICAT}', )
+        messages_thread.ajouter_consumer(res_evenements)
 
     async def traiter_commande(self, producer: MessageProducerFormatteur, message: MessageWrapper):
         routing_key = message.routing_key
@@ -116,13 +102,16 @@ class CommandReceptionHandler(CommandesAbstract):
                     if action == Constantes.EVENEMENT_PING_CEDULE:
                         await self.traiter_cedule(producer, message)
                         return False
-                if self.socket_io_handler:
+                elif domaine == Constantes.DOMAINE_MESSAGES:
+                    if action == Constantes.EVENEMENT_MESSAGES_CERTIFICAT:
+                        self.etat.recevoir_certificat_chiffrage(message)
+                        return False
+                elif domaine == Constantes.DOMAINE_MAITRE_DES_CLES:
                     if action == Constantes.EVENEMENT_MAITREDESCLES_CERTIFICAT:
-                        await self.socket_io_handler.recevoir_certificat_maitredescles(message)
+                        self.etat.recevoir_certificat_chiffrage(message)
                         return False
-                    if action == Constantes.EVENEMENT_EVICT_USAGER:
-                        await self.socket_io_handler.evict_usager(message)
-                        return False
+                if self.socket_io_handler:
+                    pass
 
         self.__logger.warning("Message non gere : %s sur exchange %s " % (routing_key, exchange))
 

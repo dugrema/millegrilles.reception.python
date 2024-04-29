@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from aiohttp import web
+from aiohttp.web_request import Request
 from typing import Optional
 
 from millegrilles_web.WebServer import WebServer
@@ -15,7 +17,7 @@ class WebServerReception(WebServer):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(ConstantesReception.WEB_APP_PATH, etat, commandes)
 
-        self.__semaphore_web_verifier = asyncio.BoundedSemaphore(value=5)
+        self.__semaphore_web = asyncio.BoundedSemaphore(value=5)
 
         # self.__reception_fichiers = ReceptionFichiersMiddleware(
         #     self.app, self.etat, '/reception/fichiers/upload')
@@ -37,15 +39,14 @@ class WebServerReception(WebServer):
         await self._preparer_routes()
 
     async def setup_socketio(self):
-        """ Wiring socket.io """
-        # # Utiliser la bonne instance de SocketIoHandler dans une sous-classe
-        # self._socket_io_handler = SocketIoCollectionsHandler(self, self._stop_event)
-        # await self._socket_io_handler.setup()
         pass  # Socket-io n'est pas utilise
 
     async def _preparer_routes(self):
         self.__logger.info("Preparer routes WebServerCollections sous /collections")
         # await super()._preparer_routes()
+        self._app.add_routes([
+            web.get(f'{self.app_path}/info.json', self.handle_info_session),
+        ])
 
     async def run(self):
         """
@@ -53,11 +54,6 @@ class WebServerReception(WebServer):
         :return:
         """
         self.__logger.info("Running")
-
-        # python 3.11+
-        #async with asyncio.TaskGroup() as tg:
-        #    tg.create_task(super().run())
-        #    # tg.create_task(self.__reception_fichiers.run(self._stop_event))
 
         tasks = [
             super().run(),
@@ -67,3 +63,7 @@ class WebServerReception(WebServer):
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
         self.__logger.info("Run termine")
+
+    async def handle_info_session(self, request: Request):
+        async with self.__semaphore_web:
+            return web.HTTPOk()

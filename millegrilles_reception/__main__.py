@@ -8,6 +8,7 @@ from millegrilles_web.WebAppMain import WebAppMain
 from millegrilles_web.WebAppMain import LOGGING_NAMES as LOGGING_NAMES_WEB, adjust_logging
 from millegrilles_reception.WebServer import WebServerReception
 from millegrilles_reception.Commandes import CommandReceptionHandler
+from millegrilles_reception.EtatReception import EtatReception
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,9 @@ class ReceptionAppMain(WebAppMain):
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__()
+
+    def init_etat(self):
+        return EtatReception(self.config)
 
     def init_command_handler(self) -> CommandReceptionHandler:
         return CommandReceptionHandler(self)
