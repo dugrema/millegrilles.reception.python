@@ -9,13 +9,15 @@ from millegrilles_web.WebServer import WebServer
 # from millegrilles_web.TransfertFichiers import ReceptionFichiersMiddleware
 
 from millegrilles_reception import Constantes as ConstantesReception
+from millegrilles_reception.MessageReceptionHandler import MessageReceptionHandler
 
 
 class WebServerReception(WebServer):
 
-    def __init__(self, etat, commandes):
+    def __init__(self, etat, commandes, messages_handler: MessageReceptionHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(ConstantesReception.WEB_APP_PATH, etat, commandes)
+        self.__messages_handler = messages_handler
 
         self.__semaphore_web = asyncio.BoundedSemaphore(value=5)
 
@@ -46,6 +48,7 @@ class WebServerReception(WebServer):
         # await super()._preparer_routes()
         self._app.add_routes([
             web.get(f'{self.app_path}/info.json', self.handle_info_session),
+            web.post(f'{self.app_path}/message', self.__messages_handler.recevoir_post_web),
         ])
 
     async def run(self):

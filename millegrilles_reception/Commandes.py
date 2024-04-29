@@ -15,6 +15,8 @@ from millegrilles_web import Constantes as  ConstantesWeb
 from millegrilles_web.SocketIoHandler import SocketIoHandler
 from millegrilles_web.EtatWeb import EtatWeb
 
+from millegrilles_reception.MessageReceptionHandler import MessageReceptionHandler
+
 
 class CommandReceptionHandler(CommandesAbstract):
 
@@ -35,6 +37,10 @@ class CommandReceptionHandler(CommandesAbstract):
     @property
     def socket_io_handler(self) -> SocketIoHandler:
         return self.__web_app.socket_io_handler
+
+    @property
+    def reception_handler(self) -> MessageReceptionHandler:
+        return self.__web_app.reception_handler
 
     def get_routing_keys(self):
         return [

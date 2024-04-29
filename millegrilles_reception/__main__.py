@@ -3,12 +3,15 @@ import asyncio
 import logging
 import signal
 
+from typing import Optional
+
 from millegrilles_web.WebAppMain import WebAppMain
 
 from millegrilles_web.WebAppMain import LOGGING_NAMES as LOGGING_NAMES_WEB, adjust_logging
 from millegrilles_reception.WebServer import WebServerReception
 from millegrilles_reception.Commandes import CommandReceptionHandler
 from millegrilles_reception.EtatReception import EtatReception
+from millegrilles_reception.MessageReceptionHandler import MessageReceptionHandler
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,7 @@ class ReceptionAppMain(WebAppMain):
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__()
+        self.__reception_handler: Optional[MessageReceptionHandler] = None
 
     def init_etat(self):
         return EtatReception(self.config)
@@ -32,7 +36,8 @@ class ReceptionAppMain(WebAppMain):
         await super().configurer()
 
     async def configurer_web_server(self):
-        self._web_server = WebServerReception(self.etat, self._commandes_handler)
+        self.__reception_handler = MessageReceptionHandler(self.etat)
+        self._web_server = WebServerReception(self.etat, self._commandes_handler, self.__reception_handler)
         await self._web_server.setup(stop_event=self._stop_event)
 
     def exit_gracefully(self, signum=None, frame=None):
@@ -47,6 +52,10 @@ class ReceptionAppMain(WebAppMain):
     @property
     def nb_reply_correlation_max(self):
         return 50
+
+    @property
+    def reception_handler(self):
+        return self.__reception_handler
 
 
 async def demarrer():

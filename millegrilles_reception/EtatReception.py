@@ -108,3 +108,7 @@ class EtatReception(EtatWeb):
             raise Exception("Aucuns certificats de chiffrage disponible")
 
         return cles_chiffrees
+
+    def get_certificats_chiffrage(self) -> list[EnveloppeCertificat]:
+        enveloppes = [c.enveloppe for c in self.__certificat_chiffrage.values()]
+        return enveloppes
