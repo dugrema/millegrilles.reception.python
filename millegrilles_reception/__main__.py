@@ -1,9 +1,12 @@
 import argparse
 import asyncio
+import datetime
 import logging
 import signal
 
 from typing import Optional
+
+from millegrilles_messages.docker.Entretien import TacheEntretien
 
 from millegrilles_web.WebAppMain import WebAppMain
 
@@ -34,6 +37,11 @@ class ReceptionAppMain(WebAppMain):
 
     async def configurer(self):
         await super().configurer()
+
+        self.etat.ajouter_tache_entretien(
+            TacheEntretien(datetime.timedelta(minutes=10), self.etat.charger_cles_chiffrage))
+        self.etat.ajouter_tache_entretien(
+            TacheEntretien(datetime.timedelta(minutes=20), self.etat.nettoyer_certificats_stale))
 
     async def configurer_web_server(self):
         self.__reception_handler = MessageReceptionHandler(self.etat)
