@@ -58,11 +58,14 @@ class MessagePrepare:
 
         self.date_post = int(datetime.datetime.utcnow().timestamp())
 
-    async def generer(self, etat: EtatReception):
+    async def generer(self, etat: EtatReception, additionnel: Optional[dict] = None):
         message_dechiffre = {
             'contenu': self.contenu,
             'date_post': self.date_post
         }
+
+        if additionnel:
+            message_dechiffre.update(additionnel)
 
         if self.destinataires:
             message_dechiffre['destinataires'] = self.destinataires
@@ -91,9 +94,13 @@ class MessageReceptionHandler:
         async with self.__semaphore_messages:
             message_post = await request.json()
 
+            headers_web = dict(request.headers)
+            self.__logger.debug("Reception recevoir_post_web headers:\n%s" % json.dumps(headers_web, indent=2))
+            origine = json.dumps(headers_web)
+
             try:
                 message_prepare = MessagePrepare.parse(message_post)
-                return await self.submit_message(message_prepare)
+                return await self.submit_message(message_prepare, {'origine': origine})
             except asyncio.TimeoutError:
                 self.__logger.error("Timeout error sur posterV1")
                 return web.HTTPInternalServerError()
@@ -101,14 +108,14 @@ class MessageReceptionHandler:
                 self.__logger.exception("Exception sur posterV1")
                 return web.HTTPInternalServerError()
 
-    async def submit_message(self, message_prepare: MessagePrepare):
+    async def submit_message(self, message_prepare: MessagePrepare, headers_web: dict):
         producer = await asyncio.wait_for(self.__etat.producer_wait(), 5)
 
         if producer is None:
             raise Exception('producer non pret')
 
         try:
-            message_chiffre, message_id = await message_prepare.generer(self.__etat)
+            message_chiffre, message_id = await message_prepare.generer(self.__etat, headers_web)
         except KeyError:
             return web.HTTPOk(body=json.dumps({'ok': False, 'code': 2, 'err': 'Cles de chiffrage non recues, reessayer dans 30 secondes'}))
 
