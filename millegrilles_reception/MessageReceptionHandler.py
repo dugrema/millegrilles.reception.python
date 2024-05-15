@@ -18,6 +18,7 @@ class MessagePrepare:
         self.contenu: Optional[str] = None
         self.reply_to: Optional[str] = None
         self.date_post: Optional[int] = None
+        self.auteur: Optional[str] = None
 
     @staticmethod
     def parse(message_recu: dict):
@@ -55,6 +56,7 @@ class MessagePrepare:
             raise Exception('destinataire invalide')
 
         self.reply_to = message_recu.get('reply_to')
+        self.auteur = message_recu.get('auteur')
 
         self.date_post = int(datetime.datetime.utcnow().timestamp())
 
@@ -74,6 +76,9 @@ class MessagePrepare:
 
         if self.reply_to:
             message_dechiffre['reply_to'] = self.reply_to
+
+        if self.auteur:
+            message_dechiffre['auteur'] = self.auteur
 
         certificats_chiffrage = etat.get_certificats_chiffrage()
         message_chiffre = await etat.formatteur_message.chiffrer_message(

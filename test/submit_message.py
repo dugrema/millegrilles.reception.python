@@ -11,12 +11,12 @@ if RECEPTION_HOST is None:
 
 def submit_message_1():
     message_1 = {
-        'destinataires': 'proprietaire',
-        'contenu': """
-            <p>Un message a transmettre.</p>
-            <p>Test</p>
-            <p>Heuille c'est pas pire, ca marche.</p>
+        'destinataires': ['proprietaire', 'bouzou'],
+        'contenu': """<p>Un message de moi.</p><p><br></p><p>Test</p>
+<p>Heuille c'est pas pire, ca marche.</p>
         """,
+        'reply_to': 'pas_proprietaire',
+        'auteur': 'C\'est moi'
     }
 
     reponse = requests.post(f'https://{RECEPTION_HOST}/message', json=message_1)
