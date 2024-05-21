@@ -15,6 +15,7 @@ from millegrilles_reception.WebServer import WebServerReception
 from millegrilles_reception.Commandes import CommandReceptionHandler
 from millegrilles_reception.EtatReception import EtatReception
 from millegrilles_reception.MessageReceptionHandler import MessageReceptionHandler
+from millegrilles_reception.FichiersDechiffresHandler import FichiersDechiffresHandler
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,22 @@ class ReceptionAppMain(WebAppMain):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__()
         self.__reception_handler: Optional[MessageReceptionHandler] = None
+        self.__fichier_dechiffres_handler: Optional[FichiersDechiffresHandler] = None
+        # self.__fichier_intake: Optional[FichierIntake] = None
 
     def init_etat(self):
         return EtatReception(self.config)
 
     def init_command_handler(self) -> CommandReceptionHandler:
-        return CommandReceptionHandler(self)
+        reception_handler = CommandReceptionHandler(self)
+
+        self.__fichier_dechiffres_handler = FichiersDechiffresHandler(self)
+
+        return reception_handler
 
     async def configurer(self):
         await super().configurer()
+        await self.__fichier_dechiffres_handler.setup()
 
         self.etat.ajouter_tache_entretien(
             TacheEntretien(datetime.timedelta(minutes=10), self.etat.charger_cles_chiffrage))
@@ -45,7 +53,8 @@ class ReceptionAppMain(WebAppMain):
 
     async def configurer_web_server(self):
         self.__reception_handler = MessageReceptionHandler(self.etat)
-        self._web_server = WebServerReception(self.etat, self._commandes_handler, self.__reception_handler)
+        self._web_server = WebServerReception(self.etat, self._commandes_handler, self.__reception_handler,
+                                              self.__fichier_dechiffres_handler)
         await self._web_server.setup(stop_event=self._stop_event)
 
     def exit_gracefully(self, signum=None, frame=None):

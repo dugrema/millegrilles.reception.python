@@ -6,23 +6,27 @@ from aiohttp.web_request import Request
 from typing import Optional
 
 from millegrilles_web.WebServer import WebServer
-# from millegrilles_web.TransfertFichiers import ReceptionFichiersMiddleware
+from millegrilles_web.TransfertFichiers import ReceptionFichiersMiddleware
 
 from millegrilles_reception import Constantes as ConstantesReception
 from millegrilles_reception.MessageReceptionHandler import MessageReceptionHandler
+from millegrilles_reception.FichiersDechiffresHandler import FichiersDechiffresHandler
 
 
 class WebServerReception(WebServer):
 
-    def __init__(self, etat, commandes, messages_handler: MessageReceptionHandler):
+    def __init__(self, etat, commandes, messages_handler: MessageReceptionHandler,
+                 fichiers_dechiffres_handler: FichiersDechiffresHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+
         super().__init__(ConstantesReception.WEB_APP_PATH, etat, commandes)
         self.__messages_handler = messages_handler
+        self.__fichiers_dechiffres_handler = fichiers_dechiffres_handler
 
         self.__semaphore_web = asyncio.BoundedSemaphore(value=5)
 
-        # self.__reception_fichiers = ReceptionFichiersMiddleware(
-        #     self.app, self.etat, '/reception/fichiers/upload')
+        self.__reception_fichiers = ReceptionFichiersMiddleware(
+            self.app, self.etat, '/reception/fichiers/upload')
 
     def get_nom_app(self) -> str:
         return ConstantesReception.APP_NAME
@@ -35,9 +39,7 @@ class WebServerReception(WebServer):
             self._stop_event = asyncio.Event()
 
         self._charger_configuration(configuration)
-        # await self._charger_session_handler()
         self._charger_ssl()
-        # await self.setup_socketio()
         await self._preparer_routes()
 
     async def setup_socketio(self):

@@ -100,7 +100,7 @@ class EtatReception(EtatWeb):
     def chiffrer_cle_secrete(self, cle_secrete: bytes):
         cles_chiffrees = dict()
 
-        for fingerprint, cert in self.__certificat_chiffrage:
+        for fingerprint, cert in self.__certificat_chiffrage.items():
             cle_chiffree, _fingerprint = cert.enveloppe.chiffrage_asymmetrique(cle_secrete)
             cles_chiffrees[fingerprint] = cle_chiffree
 
