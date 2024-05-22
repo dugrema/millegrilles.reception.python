@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pathlib
 
 from aiohttp import web
 from aiohttp.web_request import Request
@@ -41,6 +42,7 @@ class WebServerReception(WebServer):
         self._charger_configuration(configuration)
         self._charger_ssl()
         await self._preparer_routes()
+        await self.__reception_fichiers.setup()
 
     async def setup_socketio(self):
         pass  # Socket-io n'est pas utilise
@@ -62,7 +64,7 @@ class WebServerReception(WebServer):
 
         tasks = [
             super().run(),
-            # self.__reception_fichiers.run(self._stop_event)
+            self.__reception_fichiers.run(self._stop_event)
         ]
 
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
@@ -72,3 +74,10 @@ class WebServerReception(WebServer):
     async def handle_info_session(self, request: Request):
         async with self.__semaphore_web:
             return web.HTTPOk()
+
+    @property
+    def fichiers_dechiffres_handler(self):
+        return self.__fichiers_dechiffres_handler
+
+    async def ajouter_upload(self, path_upload: pathlib.Path):
+        await self.__reception_fichiers.ajouter_upload(path_upload)

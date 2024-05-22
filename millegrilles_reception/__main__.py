@@ -2,15 +2,14 @@ import argparse
 import asyncio
 import datetime
 import logging
+import pathlib
 import signal
 
 from typing import Optional
 
 from millegrilles_messages.docker.Entretien import TacheEntretien
 
-from millegrilles_web.WebAppMain import WebAppMain
-
-from millegrilles_web.WebAppMain import LOGGING_NAMES as LOGGING_NAMES_WEB, adjust_logging
+from millegrilles_web.WebAppMain import WebAppMain, LOGGING_NAMES as LOGGING_NAMES_WEB, adjust_logging
 from millegrilles_reception.WebServer import WebServerReception
 from millegrilles_reception.Commandes import CommandReceptionHandler
 from millegrilles_reception.EtatReception import EtatReception
@@ -30,7 +29,6 @@ class ReceptionAppMain(WebAppMain):
         super().__init__()
         self.__reception_handler: Optional[MessageReceptionHandler] = None
         self.__fichier_dechiffres_handler: Optional[FichiersDechiffresHandler] = None
-        # self.__fichier_intake: Optional[FichierIntake] = None
 
     def init_etat(self):
         return EtatReception(self.config)
@@ -52,7 +50,7 @@ class ReceptionAppMain(WebAppMain):
             TacheEntretien(datetime.timedelta(minutes=20), self.etat.nettoyer_certificats_stale))
 
     async def configurer_web_server(self):
-        self.__reception_handler = MessageReceptionHandler(self.etat)
+        self.__reception_handler = MessageReceptionHandler(self)
         self._web_server = WebServerReception(self.etat, self._commandes_handler, self.__reception_handler,
                                               self.__fichier_dechiffres_handler)
         await self._web_server.setup(stop_event=self._stop_event)
@@ -73,6 +71,13 @@ class ReceptionAppMain(WebAppMain):
     @property
     def reception_handler(self):
         return self.__reception_handler
+
+    @property
+    def fichiers_dechiffres_handler(self):
+        return self.__fichier_dechiffres_handler
+
+    async def ajouter_upload(self, path_upload: pathlib.Path):
+        await self._web_server.ajouter_upload(path_upload)
 
 
 async def demarrer():
